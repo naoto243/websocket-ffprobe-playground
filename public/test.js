@@ -2,9 +2,6 @@
 
 const newFfprobeApp = (f)=>{
   
-  
-  var ws;
-  
   const self = {
     
     files : {
@@ -16,7 +13,7 @@ const newFfprobeApp = (f)=>{
         //fetch(`/open/${f.name}`)
       var loc = window.location;
       const url = `ws://${loc.host}/ws/start/${f.name}?size=${f.size}&file_type=${f.type}`;
-      ws = new WebSocket(url);
+      const ws = new WebSocket(url);
   
       ws.onopen = () =>  {
         console.log('Connected FFPROBE');
@@ -40,8 +37,9 @@ const newFfprobeApp = (f)=>{
           ws.send(e);
         };
   
-        reader.readAsBinaryString(blob);
+        //reader.readAsBinaryString(blob);
         
+        reader.readAsArrayBuffer(blob)
       }
       
     },
