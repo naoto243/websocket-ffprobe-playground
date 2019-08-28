@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -218,16 +219,21 @@ func (self *implWsApp) startFfprobeConnection(c echo.Context) error {
 		return err
 	}
 
+	m := new(sync.Mutex)
+	m.Lock()
 	self.wsPool[uniq] =  ws
 	self.fileInfoPool[uniq]  = &FileInfo{
 		Size: size,
 		Type:fType,
 	}
+	m.Unlock()
 
 	defer func() {
 		ws.Close()
+		m.Lock()
 		self.wsPool[uniq] =  nil
 		self.fileInfoPool[uniq] = nil
+		m.Unlock()
 	}()
 
 
