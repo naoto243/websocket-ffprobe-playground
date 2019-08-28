@@ -8,6 +8,7 @@ const newFfprobeApp = (f , resultArea)=>{
       target : f,
     },
     start  : ()=>{
+      resultArea.innerHTML = 'reading...';
       
       console.log(f);
         //fetch(`/open/${f.name}`)
@@ -24,8 +25,15 @@ const newFfprobeApp = (f , resultArea)=>{
         const data = JSON.parse(evt.data);
         console.log(data);
         
+        if (data.error != null) {
+          resultArea.innerHTML =   data.error;
+          ws.close();
+          return
+        }
+        
         if (data.ffprobe_result != null){
           resultArea.innerHTML =   data.ffprobe_result;
+          ws.close();
           return
         }
   

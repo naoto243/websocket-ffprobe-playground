@@ -180,7 +180,7 @@ func parseRangeHeader(rangeHeader string , size int) (start int , end int , tota
 		return 0, 0, 0 , err
 	}
 
-	const partSize = 1024 * 1024
+	const partSize = 1024 * 256
 
 	e := s + partSize
 	if e >= size {
@@ -201,7 +201,8 @@ type RangeRequest struct {
 }
 
 type Result struct {
-	FfprobeResult string `json:"ffprobe_result"`
+	FfprobeResult *string `json:"ffprobe_result"`
+	Error *string `json:"error"`
 }
 
 type FileInfo struct {
@@ -255,17 +256,19 @@ func (self *implWsApp) startFfprobeConnection(c echo.Context) error {
 
 		out , err := exec.Command(`sh` , `-c` , cmd).CombinedOutput()
 		isComplete = true
+		result :=  Result{
+		}
 		if err != nil {
 			log.Error(err)
-			return
+			errStr := err.Error()
+			result.Error = &errStr
 		}
 
-		result :=  Result{
-			FfprobeResult: string(out),
-		}
+		outJsonString := string(out)
+
+		result.FfprobeResult = &outJsonString
 
 		j   , _ := json.Marshal(result)
-
 		//  ブラウザにpush
 		err = ws.WriteMessage(websocket.TextMessage, j)
 		if err != nil {
