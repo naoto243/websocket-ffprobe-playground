@@ -106,11 +106,13 @@ func (self *implWsApp) getData(c echo.Context) error {
 	j   , _ := json.Marshal(r)
 
 
+	//  ブラウザにpush
 	err = ws.WriteMessage(websocket.TextMessage, j)
 	if err != nil {
 		c.Logger().Error(err)
 	}
 
+	// ブラウザでの読み取りを待ち受け
 	t, res, err := ws.ReadMessage()
 	if err != nil {
 		c.Logger().Error(err)
