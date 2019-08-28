@@ -21,14 +21,12 @@ var (
 	upgrader = websocket.Upgrader{}
 )
 
-
-
 func NewWsApp() WsApp {
 
-	return &implWsApp {
+	return &implWsApp{
 
-		wsPool: make( map[string]*websocket.Conn , 0),
-		fileInfoPool:make(map[string]*FileInfo , 0),
+		wsPool:       make(map[string]*websocket.Conn, 0),
+		fileInfoPool: make(map[string]*FileInfo, 0),
 	}
 }
 
@@ -40,7 +38,7 @@ type WsApp interface {
 type implWsApp struct {
 	e *echo.Echo
 
-	wsPool map[string]*websocket.Conn
+	wsPool       map[string]*websocket.Conn
 	fileInfoPool map[string]*FileInfo
 }
 
@@ -49,10 +47,10 @@ func (self *implWsApp) Run() error {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	pwd , _ := os.Getwd()
+	pwd, _ := os.Getwd()
 	fmt.Println(pwd)
 
-	e.Static("/", pwd + "/public")
+	e.Static("/", pwd+"/public")
 	e.GET("/ws/start/:fileName", self.startFfprobeConnection)
 	e.GET("/get_data/:socketId", self.getData)
 
@@ -72,44 +70,41 @@ func (self *implWsApp) getData(c echo.Context) error {
 
 	log.Info(`ffprobeからなんかきた`)
 
-
 	rangeReq := c.Request().Header.Get(`Range`)
 
 	socketId := c.Param(`socketId`)
 
-	ws  , ok  := self.wsPool[socketId]
+	ws, ok := self.wsPool[socketId]
 	if !ok {
-		return c.String(http.StatusBadRequest , `no conn`)
+		return c.String(http.StatusBadRequest, `no conn`)
 	}
 
-	info  , ok  := self.fileInfoPool[socketId]
+	info, ok := self.fileInfoPool[socketId]
 	if !ok {
-		return c.String(http.StatusBadRequest , `no conn`)
+		return c.String(http.StatusBadRequest, `no conn`)
 	}
 
 	log.Info(rangeReq)
 
-	start , end , part , err := parseRangeHeader(rangeReq , info.Size)
+	start, end, part, err := parseRangeHeader(rangeReq, info.Size)
 	if err != nil {
 		log.Error(err)
 		return err
 	}
 
 	r := RangeRequest{
-		SocketId:socketId,
-		Range:rangeReq,
-		StartByte:start,
-		EndByte:end,
+		SocketId:  socketId,
+		Range:     rangeReq,
+		StartByte: start,
+		EndByte:   end,
 	}
-	j   , _ := json.Marshal(r)
-
+	j, _ := json.Marshal(r)
 
 	//  ブラウザにpush
 	err = ws.WriteMessage(websocket.TextMessage, j)
 	if err != nil {
 		c.Logger().Error(err)
 	}
-
 
 	// ブラウザでの読み取りを待ち受け
 	t, res, err := ws.ReadMessage()
@@ -120,24 +115,23 @@ func (self *implWsApp) getData(c echo.Context) error {
 	log.Info(t)
 
 	if part != len(res) {
-		err = fmt.Errorf(`expected: %d , but: %d` , part , len(res))
+		err = fmt.Errorf(`expected: %d , but: %d`, part, len(res))
 		log.Error(`sizeちゃうな`)
 		log.Error(err)
 		return err
 	}
-
 
 	c.Response().Header().Set(`Accept-Ranges`, `bytes`)
 	c.Response().Header().Set(`Connection`, `close`)
 	c.Response().Header().Set(`Content-Type`, info.Type)
 	c.Response().Header().Set(`Content-Length`, fmt.Sprint(len(res)))
 
-	rangeResponse := fmt.Sprintf(`bytes %d-%d/%d` , start , start + len(res) , info.Size)
+	rangeResponse := fmt.Sprintf(`bytes %d-%d/%d`, start, start+len(res), info.Size)
 	fmt.Println(rangeResponse)
-	c.Response().Header().Set(`Content-Range` , rangeResponse)
+	c.Response().Header().Set(`Content-Range`, rangeResponse)
 	c.Response().Status = http.StatusPartialContent
 
-	_ , err = c.Response().Write(res)
+	_, err = c.Response().Write(res)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -146,7 +140,7 @@ func (self *implWsApp) getData(c echo.Context) error {
 	return nil
 }
 
-func parseRangeHeader(rangeHeader string , size int) (start int , end int , total int , err error){
+func parseRangeHeader(rangeHeader string, size int) (start int, end int, total int, err error) {
 
 	defer func() {
 		if onPanic := recover(); onPanic != nil {
@@ -155,41 +149,40 @@ func parseRangeHeader(rangeHeader string , size int) (start int , end int , tota
 		}
 	}()
 
-
-	b := strings.Split(rangeHeader , "=")
-	b2 := strings.Split(b[1] , "-")
+	b := strings.Split(rangeHeader, "=")
+	b2 := strings.Split(b[1], "-")
 
 	_start := b2[0]
 	//_end := b2[1] // ""
 
-	s , err := strconv.Atoi(_start)
+	s, err := strconv.Atoi(_start)
 	if err != nil {
 		log.Error(err)
-		return 0, 0, 0 , err
+		return 0, 0, 0, err
 	}
 
 	const partSize = 1024 * 256
 
 	e := s + partSize
 	if e >= size {
-		e =  size
+		e = size
 	}
 
 	total = e - s
 
-	return s , e , total , nil
+	return s, e, total, nil
 }
 
 type RangeRequest struct {
 	SocketId  string `json:"socket_id"`
-	Range string `json:"range"`
-	StartByte int `json:"start_byte"`
-	EndByte int `json:"end_byte"`
+	Range     string `json:"range"`
+	StartByte int    `json:"start_byte"`
+	EndByte   int    `json:"end_byte"`
 }
 
 type Result struct {
 	FfprobeResult *string `json:"ffprobe_result"`
-	Error *string `json:"error"`
+	Error         *string `json:"error"`
 }
 
 type FileInfo struct {
@@ -197,12 +190,10 @@ type FileInfo struct {
 	Type string
 }
 
-
 func (self *implWsApp) startFfprobeConnection(c echo.Context) error {
 
-	size   , _ := strconv.Atoi(c.QueryParam(`size`))
+	size, _ := strconv.Atoi(c.QueryParam(`size`))
 	fType := c.QueryParam(`file_type`)
-
 
 	uniq := fmt.Sprint(time.Now().UnixNano())
 
@@ -214,21 +205,20 @@ func (self *implWsApp) startFfprobeConnection(c echo.Context) error {
 
 	m := new(sync.Mutex)
 	m.Lock()
-	self.wsPool[uniq] =  ws
-	self.fileInfoPool[uniq]  = &FileInfo{
+	self.wsPool[uniq] = ws
+	self.fileInfoPool[uniq] = &FileInfo{
 		Size: size,
-		Type:fType,
+		Type: fType,
 	}
 	m.Unlock()
 
 	defer func() {
 		m.Lock()
-		self.wsPool[uniq] =  nil
+		self.wsPool[uniq] = nil
 		self.fileInfoPool[uniq] = nil
 		m.Unlock()
 		ws.Close()
 	}()
-
 
 	waitGroup := sync.WaitGroup{}
 	waitGroup.Add(1)
@@ -240,18 +230,17 @@ func (self *implWsApp) startFfprobeConnection(c echo.Context) error {
 		time.Sleep(time.Second)
 
 		log.Info(`ffprobeを起動`)
-		url := fmt.Sprintf( `http://127.0.0.1:1323/get_data/%s` , uniq )
-		cmd := fmt.Sprintf(`ffprobe -i '%s' -v quiet -print_format json -show_format -show_streams -show_error -show_chapters` , url)
+		url := fmt.Sprintf(`http://127.0.0.1:1323/get_data/%s`, uniq)
+		cmd := fmt.Sprintf(`ffprobe -i '%s' -v quiet -print_format json -show_format -show_streams -show_error -show_chapters`, url)
 
-		out , err := exec.Command(`sh` , `-c` , cmd).CombinedOutput()
-		result :=  Result{
-		}
+		out, err := exec.Command(`sh`, `-c`, cmd).CombinedOutput()
+		result := Result{}
 		if err != nil {
 			log.Error(err)
 			errStr := err.Error()
 			result.Error = &errStr
 
-			j   , _ := json.Marshal(result)
+			j, _ := json.Marshal(result)
 			//  ブラウザにpush
 			err = ws.WriteMessage(websocket.TextMessage, j)
 			if err != nil {
@@ -260,10 +249,9 @@ func (self *implWsApp) startFfprobeConnection(c echo.Context) error {
 		}
 
 		outJsonString := string(out)
-
 		result.FfprobeResult = &outJsonString
 
-		j   , _ := json.Marshal(result)
+		j, _ := json.Marshal(result)
 		//  ブラウザにpush
 		err = ws.WriteMessage(websocket.TextMessage, j)
 		if err != nil {
@@ -274,9 +262,5 @@ func (self *implWsApp) startFfprobeConnection(c echo.Context) error {
 
 	waitGroup.Wait()
 
-
-
 	return nil
 }
-
-

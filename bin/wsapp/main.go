@@ -14,7 +14,6 @@ func main() {
 		wsApp.Run()
 	}()
 
-
 	quit := make(chan os.Signal)
 	signal.Notify(quit, os.Interrupt)
 	<-quit
