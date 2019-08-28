@@ -227,7 +227,6 @@ func (self *implWsApp) startFfprobeConnection(c echo.Context) error {
 
 		defer waitGroup.Done()
 
-		time.Sleep(time.Second)
 
 		log.Info(`ffprobeを起動`)
 		url := fmt.Sprintf(`http://127.0.0.1:1323/get_data/%s`, uniq)
