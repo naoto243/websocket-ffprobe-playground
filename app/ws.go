@@ -200,6 +200,10 @@ type RangeRequest struct {
 	EndByte int `json:"end_byte"`
 }
 
+type Result struct {
+	FfprobeResult string `json:"ffprobe_result"`
+}
+
 type FileInfo struct {
 	Size int
 	Type string
@@ -249,14 +253,25 @@ func (self *implWsApp) startFfprobeConnection(c echo.Context) error {
 		url := fmt.Sprintf( `http://127.0.0.1:1323/get_data/%s/%s` , uniq , fname)
 		cmd := fmt.Sprintf(`ffprobe -i '%s' -v quiet -print_format json -show_format -show_streams -show_error -show_chapters` , url)
 
-		fmt.Println(cmd)
 		out , err := exec.Command(`sh` , `-c` , cmd).CombinedOutput()
+		isComplete = true
 		if err != nil {
 			log.Error(err)
+			return
 		}
-		isComplete = true
 
-		fmt.Println(string(out))
+		result :=  Result{
+			FfprobeResult: string(out),
+		}
+
+		j   , _ := json.Marshal(result)
+
+		//  ブラウザにpush
+		err = ws.WriteMessage(websocket.TextMessage, j)
+		if err != nil {
+			c.Logger().Error(err)
+		}
+
 	}()
 
 	for {

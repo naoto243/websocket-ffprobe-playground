@@ -1,6 +1,6 @@
 
 
-const newFfprobeApp = (f)=>{
+const newFfprobeApp = (f , resultArea)=>{
   
   const self = {
     
@@ -23,6 +23,11 @@ const newFfprobeApp = (f)=>{
         
         const data = JSON.parse(evt.data);
         console.log(data);
+        
+        if (data.ffprobe_result != null){
+          resultArea.innerHTML =   data.ffprobe_result;
+          return
+        }
   
         var reader = new FileReader();
   
