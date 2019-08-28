@@ -1,7 +1,7 @@
-# websockt-ffprobe-playground
+# websocket-ffprobe-playground
 
 
-完パケの動画をuploadせずにffprobeでメタをとるサンプルです。
+完パケの動画をuploadせずにwebdocket経由でffprobeで動画や音楽のメタをとるサンプルです。
 ffprobeのinstallは必要.
 
 ```

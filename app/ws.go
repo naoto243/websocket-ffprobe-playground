@@ -119,15 +119,6 @@ func (self *implWsApp) getData(c echo.Context) error {
 
 	log.Info(t)
 
-	/*
-	res.set('Accept-Ranges', 'bytes');
-	res.set('Connection', 'close');
-	res.set('Content-Type', type);
-	res.set('Content-Length', range.end - range.start);
-	res.set('Content-Range', 'bytes ' + range.start + '-' + range.end + '/' + size);
-	res.statusCode = 206;
-	 */
-
 	if part != len(res) {
 		err = fmt.Errorf(`expected: %d , but: %d` , part , len(res))
 		log.Error(`sizeちゃうな`)
@@ -239,9 +230,12 @@ func (self *implWsApp) startFfprobeConnection(c echo.Context) error {
 	}()
 
 
+	waitGroup := sync.WaitGroup{}
+	waitGroup.Add(1)
 
-	isComplete := false
 	go func() {
+
+		defer waitGroup.Done()
 
 		time.Sleep(time.Second)
 
@@ -250,13 +244,19 @@ func (self *implWsApp) startFfprobeConnection(c echo.Context) error {
 		cmd := fmt.Sprintf(`ffprobe -i '%s' -v quiet -print_format json -show_format -show_streams -show_error -show_chapters` , url)
 
 		out , err := exec.Command(`sh` , `-c` , cmd).CombinedOutput()
-		isComplete = true
 		result :=  Result{
 		}
 		if err != nil {
 			log.Error(err)
 			errStr := err.Error()
 			result.Error = &errStr
+
+			j   , _ := json.Marshal(result)
+			//  ブラウザにpush
+			err = ws.WriteMessage(websocket.TextMessage, j)
+			if err != nil {
+				c.Logger().Error(err)
+			}
 		}
 
 		outJsonString := string(out)
@@ -272,14 +272,9 @@ func (self *implWsApp) startFfprobeConnection(c echo.Context) error {
 
 	}()
 
-	for {
-		time.Sleep(time.Second)
+	waitGroup.Wait()
 
-		if isComplete {
-			log.Info(`complete or error!`)
-			return nil
-		}
-	}
+
 
 	return nil
 }
