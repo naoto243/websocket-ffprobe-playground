@@ -54,7 +54,7 @@ func (self *implWsApp) Run() error {
 
 	e.Static("/", pwd + "/public")
 	e.GET("/ws/start/:fileName", self.startFfprobeConnection)
-	e.GET("/get_data/:socketId/:fileName", self.getData)
+	e.GET("/get_data/:socketId", self.getData)
 
 	self.e = e
 
@@ -75,8 +75,6 @@ func (self *implWsApp) getData(c echo.Context) error {
 
 	rangeReq := c.Request().Header.Get(`Range`)
 
-	//sId := c.Param(`socketId`)
-	fName := c.Param(`fileName`)
 	socketId := c.Param(`socketId`)
 
 	ws  , ok  := self.wsPool[socketId]
@@ -100,7 +98,6 @@ func (self *implWsApp) getData(c echo.Context) error {
 	r := RangeRequest{
 		SocketId:socketId,
 		Range:rangeReq,
-		FileName:fName,
 		StartByte:start,
 		EndByte:end,
 	}
@@ -195,7 +192,6 @@ func parseRangeHeader(rangeHeader string , size int) (start int , end int , tota
 type RangeRequest struct {
 	SocketId  string `json:"socket_id"`
 	Range string `json:"range"`
-	FileName string `json:"file_name"`
 	StartByte int `json:"start_byte"`
 	EndByte int `json:"end_byte"`
 }
@@ -235,15 +231,14 @@ func (self *implWsApp) startFfprobeConnection(c echo.Context) error {
 	m.Unlock()
 
 	defer func() {
-		ws.Close()
 		m.Lock()
 		self.wsPool[uniq] =  nil
 		self.fileInfoPool[uniq] = nil
 		m.Unlock()
+		ws.Close()
 	}()
 
 
-	fname := c.Param(`fileName`)
 
 	isComplete := false
 	go func() {
@@ -251,7 +246,7 @@ func (self *implWsApp) startFfprobeConnection(c echo.Context) error {
 		time.Sleep(time.Second)
 
 		log.Info(`ffprobeを起動`)
-		url := fmt.Sprintf( `http://127.0.0.1:1323/get_data/%s/%s` , uniq , fname)
+		url := fmt.Sprintf( `http://127.0.0.1:1323/get_data/%s` , uniq )
 		cmd := fmt.Sprintf(`ffprobe -i '%s' -v quiet -print_format json -show_format -show_streams -show_error -show_chapters` , url)
 
 		out , err := exec.Command(`sh` , `-c` , cmd).CombinedOutput()
@@ -282,7 +277,7 @@ func (self *implWsApp) startFfprobeConnection(c echo.Context) error {
 
 		if isComplete {
 			log.Info(`complete or error!`)
-			break
+			return nil
 		}
 	}
 
