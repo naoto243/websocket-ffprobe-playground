@@ -4,35 +4,23 @@
 <head>
   <meta charset="utf-8">
   <title>WebSocket</title>
+  <script  src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
+  <script src="test.js"></script>
 </head>
 
-<body>
-  <p id="output"></p>
+
+  <input type="file" id="f" >  read </body>
 
   <script>
-    var loc = window.location;
-    var uri = 'ws:';
 
-    if (loc.protocol === 'https:') {
-      uri = 'wss:';
-    }
-    uri += '//' + loc.host;
-    uri += loc.pathname + 'ws';
+    document.getElementById("f").onchange = (e)=>{
+      const f = e.target.files[0];
 
-    ws = new WebSocket(uri)
+      const app = newFfprobeApp(f);
+      app.start()
 
-    ws.onopen = function() {
-      console.log('Connected')
-    }
+    };
 
-    ws.onmessage = function(evt) {
-      var out = document.getElementById('output');
-      out.innerHTML += evt.data + '<br>';
-    }
-
-    setInterval(function() {
-      ws.send('Hello, Server!');
-    }, 1000);
   </script>
 </body>
 
