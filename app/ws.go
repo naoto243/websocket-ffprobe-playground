@@ -180,7 +180,7 @@ func parseRangeHeader(rangeHeader string , size int) (start int , end int , tota
 		return 0, 0, 0 , err
 	}
 
-	const partSize = 1024 * 10
+	const partSize = 1024 * 1024
 
 	e := s + partSize
 	if e >= size {
