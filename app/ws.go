@@ -220,17 +220,16 @@ func (self *implWsApp) startFfprobeConnection(c echo.Context) error {
 		ws.Close()
 	}()
 
-	waitGroup := sync.WaitGroup{}
+	waitGroup := &sync.WaitGroup{}
 	waitGroup.Add(1)
 
 	go func() {
 
 		defer waitGroup.Done()
 
-
 		log.Info(`ffprobeを起動`)
 		url := fmt.Sprintf(`http://127.0.0.1:1323/get_data/%s`, uniq)
-		cmd := fmt.Sprintf(`ffprobe -i '%s' -v quiet -print_format json -show_format -show_streams -show_error -show_chapters`, url)
+		cmd := fmt.Sprintf(`ffprobe -i %q -v quiet -print_format json -show_format -show_streams -show_error -show_chapters`, url)
 
 		out, err := exec.Command(`sh`, `-c`, cmd).CombinedOutput()
 		result := Result{}
